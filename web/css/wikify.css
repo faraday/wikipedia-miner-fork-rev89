@@ -1,0 +1,107 @@
+.inputBox, .outputBox {
+	border: 1px solid rgb(100,100,100) ;
+	padding: 5px ;
+	background-color: white ;
+	
+	width: 100% ;
+	height: 200px ;
+	overflow:auto; 	
+	
+}
+
+.outputBox a {
+	color: #002bb8 ;
+}
+
+.outputBox {
+	border-top: none ;
+	
+}
+
+#tab_topics .explanation {
+	font-size: 0.75em ;
+}
+
+.inputBox {
+	font-family: monospace ;
+	font-size: 13px ;
+	text-align: left ;
+	height: 240px ;
+	
+	float: left ;
+}
+
+#tab_rawHtml, #tab_wiki {
+	white-space: pre-wrap;  
+	white-space: -moz-pre-wrap !important;  
+	white-space : pre; 
+	word-wrap: break-word; /* IE */
+	 
+	font-family: monospace ;
+	font-size: 13px ;
+	text-align: left ;
+}
+
+#tab_wiki a, #tab_renderedHtml a{
+	color: #002bb8 ;
+	
+}
+
+
+#showOptions {
+	padding-right: 15px ;
+	color: #002bb8 ;
+}
+
+#hideOptions {
+	padding-right: 15px ;
+	display: none ;
+	color: #002bb8 ;
+}
+
+#options {
+	padding: 5px; 
+	
+	width: 400px ;
+	height: 240px ;
+	float: right ;
+	
+	display: none ;
+}
+
+#options fieldset {
+	border: none ;
+	
+	padding-bottom: 10px ;
+}
+
+#options legend {
+	font-weight: bold;
+	color: black ;
+}
+
+#options input {
+	margin-left: 10px ;
+}
+
+#bannedTopics {
+	width: 370px ;
+}
+
+#options table {
+	margin-left: 10px ;
+}
+
+#options td {
+	padding: 0px 5px ;
+}
+
+.topicList li{
+	display:block;
+	float:left;
+	list-style-type:none;
+	padding-right:2em;
+	
+	height:30px;
+	line-height:30px;
+}
