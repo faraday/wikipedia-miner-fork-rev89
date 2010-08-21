@@ -19,6 +19,8 @@
 
 package org.wikipedia.miner.util;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -88,8 +90,9 @@ public class MySqlDatabase {
 	 * @throws InstantiationException	if the mysql driver class cannot be instantiated
 	 * @throws IllegalAccessException	if the mysql driver class cannot be instantiated
 	 * @throws ClassNotFoundException	if the mysql driver class cannot be found
+	 * @throws UnsupportedEncodingException 
 	 */
-	public void connect() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException{
+	public void connect() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, UnsupportedEncodingException{
 			
 		// load the sql drivers
 		Class.forName("org.gjt.mm.mysql.Driver").newInstance(); 
@@ -100,15 +103,15 @@ public class MySqlDatabase {
 		boolean argsStarted = false ;
 		
 		if (userName != null && !userName.equals("")) { 
-			url = url + "?user=" + userName ; 
+			url = url + "?user=" + URLEncoder.encode(userName, "UTF-8") ; 
 			argsStarted = true ;
 		}
 		
 		if (password != null && !password.equals("")) {
 			if (argsStarted)
-				url = url + "&password=" + password ;
+				url = url + "&password=" + URLEncoder.encode(password, "UTF-8") ;
 			else
-				url = url + "?password=" + password ;
+				url = url + "?password=" + URLEncoder.encode(password, "UTF-8") ;
 			
 			argsStarted = true ;
 		}
