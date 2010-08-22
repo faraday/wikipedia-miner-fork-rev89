@@ -12,11 +12,15 @@ public class DatabaseWriter {
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
+		if(args.length != 5){
+			System.exit(1);
+		}
+		
 		//connect to database
-		Wikipedia wikipedia = new Wikipedia("localhost", "wikiminer", "root", "123456") ;
+		Wikipedia wikipedia = Wikipedia.getInstanceFromArguments(args) ;
 						
 		//load cvs files
-		File dataDirectory = new File(args[0]) ;
+		File dataDirectory = new File(args[4]) ;
 		wikipedia.getDatabase().loadData(dataDirectory, true) ;
 						
 		//prepare text processors

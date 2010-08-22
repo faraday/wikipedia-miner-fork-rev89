@@ -10,8 +10,12 @@ public class PrepareProcessor {
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
+		if(args.length != 5){
+			System.exit(1);
+		}
+		
 		//connect to database
-		Wikipedia wikipedia = new Wikipedia("localhost", "wikiminer", "root", "123456") ;
+		Wikipedia wikipedia = Wikipedia.getInstanceFromArguments(args) ;
 						
 		//prepare text processors
 		wikipedia.getDatabase().prepareForTextProcessor(new CaseFolder()) ;
