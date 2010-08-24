@@ -24,6 +24,7 @@ import java.util.*;
 import org.w3c.dom.*;
 
 import org.wikipedia.miner.model.*;
+import org.wikipedia.miner.model.Anchor.RelatednessResult;
 import org.wikipedia.miner.util.*;
 import org.wikipedia.miner.util.text.*;
 
@@ -153,58 +154,14 @@ public class Comparer {
 		response.setAttribute("term1", term1) ;
 		response.setAttribute("term2", term2) ;
 
-		double sr = anchor1.getRelatednessTo(anchor2) ;
+		RelatednessResult relResult = anchor1.getRelatednessTo(anchor2) ;
 
-		response.setAttribute("relatedness", wms.df.format(sr)) ;
+		response.setAttribute("relatedness", wms.df.format(relResult.sr)) ;
 
 		if (!details)
 			return response ;
 
-		
-
-		//now we get the details of how this was calculated
-
-		double minProb = 0.01 ;
-		double benchmark_relatedness = 0 ;
-		double benchmark_distance = 0.40 ;
-
-		SortedVector<CandidatePair> candidates = new SortedVector<CandidatePair>() ;
-
-		int sensesA = 0 ;
-		int sensesB = 0 ;
-
-		for (Anchor.Sense sense1: anchor1.getSenses()) {
-
-			if (sense1.getProbability() < minProb) break ;
-			sensesA++ ;
-			sensesB = 0 ;
-
-			for (Anchor.Sense sense2: anchor2.getSenses()) {
-
-				if (sense2.getProbability() < minProb) break ;
-				sensesB++ ;
-
-				double relatedness = sense1.getRelatednessTo(sense2) ;
-				double obviousness = (sense1.getProbability() + sense2.getProbability()) / 2 ;
-
-				if (relatedness > (benchmark_relatedness - benchmark_distance)) {
-
-					//System.out.println(" - - likely candidate " + candidate + ", r=" + relatedness + ", o=" + sense.getProbability()) ;
-					// candidate a likely sense
-					if (relatedness > benchmark_relatedness + benchmark_distance) {
-						//this has set a new benchmark of what we consider likely
-						//System.out.println(" - - new benchmark") ;
-						benchmark_relatedness = relatedness ;
-
-						candidates.clear() ;
-					}
-					candidates.add(new CandidatePair(sense1, sense2, relatedness, obviousness), false) ;
-				}
-			}
-		}
-
-		CandidatePair bestSenses = candidates.first() ;
-
+		CandidatePair bestSenses = relResult.cp;
 		
 		Article art1 = bestSenses.senseA ;
 		
@@ -328,27 +285,4 @@ public class Comparer {
 		return xmlLinks ;
 	}
 	
-
-	private class CandidatePair implements Comparable<CandidatePair> {
-
-		Anchor.Sense senseA ;
-		Anchor.Sense senseB ;
-		double relatedness ;
-		double obviousness ;
-
-		public CandidatePair(Anchor.Sense senseA, Anchor.Sense senseB, double relatedness, double obviousness) {
-			this.senseA = senseA ;
-			this.senseB = senseB ;
-			this.relatedness = relatedness ;
-			this.obviousness = obviousness ;			
-		}
-
-		public int compareTo(CandidatePair cp) {
-			return new Double(cp.obviousness).compareTo(obviousness) ;
-		}
-
-		public String toString() {
-			return senseA + "," + senseB + ",r=" + relatedness + ",o=" + obviousness ;
-		}
-	}
 }

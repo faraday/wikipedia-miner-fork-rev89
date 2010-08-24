@@ -258,7 +258,15 @@ public class Anchor implements Comparable<Anchor>{
 		
 	}
 	
-	
+	public class RelatednessResult {
+		public double sr;
+		public CandidatePair cp;
+		
+		public RelatednessResult(double sr, CandidatePair cp){
+			this.sr = sr;
+			this.cp = cp;
+		}
+	}
 	
 	/**
 	 * Returns the semantic relatedness of this anchor to another. 
@@ -270,7 +278,7 @@ public class Anchor implements Comparable<Anchor>{
 	 * @return see above.
 	 * @throws SQLException if there is a problem with the Wikipedia database.
 	 */
-	public double getRelatednessTo(Anchor anchor) throws SQLException{
+	public RelatednessResult getRelatednessTo(Anchor anchor) throws SQLException{
 		
 		Cleaner cleaner = null ;
 				
@@ -284,6 +292,7 @@ public class Anchor implements Comparable<Anchor>{
 		double benchmark_distance = 0.40 ;
 		
 		SortedVector<CandidatePair> candidates = new SortedVector<CandidatePair>() ;
+		SortedVector<CandidatePair> candidates2 = new SortedVector<CandidatePair>() ;
 		
 		int sensesA = 0 ;
 		int sensesB = 0 ;
@@ -318,13 +327,44 @@ public class Anchor implements Comparable<Anchor>{
 			}
 		}
 		
+		// check from the other side 
+		benchmark_relatedness = 0;
+		for (Anchor.Sense senseB: anchor.getSenses()) {
+			if (senseB.getProbability() < minProb) break ;
+			
+			for (Anchor.Sense senseA: this.getSenses()) {
+				if (senseA.getProbability() < minProb) break ;
+				
+				Article artA = new Article(database, senseA.getId(), senseA.getTitle()) ;
+				Article artB = new Article(database, senseB.getId(), senseB.getTitle()) ;
+
+				double relatedness = artB.getRelatednessTo(artA) ;
+				double obviousness = (senseA.getProbability() + senseB.getProbability()) / 2 ;
+				
+				if (relatedness > (benchmark_relatedness - benchmark_distance)) {
+
+					if (relatedness > benchmark_relatedness + benchmark_distance) {
+						//this has set a new benchmark of what we consider likely
+						benchmark_relatedness = relatedness ;
+						candidates2.clear() ;
+					}
+					candidates2.add(new CandidatePair(senseA, senseB, relatedness, obviousness), false) ;
+				}
+			}
+		}
+		
 		CandidatePair cp = candidates.first() ;
+		CandidatePair cp2 = candidates2.first() ;
+			
+		if(cp2.relatedness > cp.relatedness){
+			cp = cp2;
+		}
 		
 		double sr = cp.relatedness + wc ;
 		if (sr > 1)
 			sr = 1 ;
 		
-		return sr ;
+		return new RelatednessResult(sr, cp);
 	}
 		
 	public int compareTo(Anchor a) {
@@ -462,39 +502,8 @@ public class Anchor implements Comparable<Anchor>{
 				
 				System.out.println();
 	
-				System.out.println("\nRelatedness of \"" + termA + "\" to \"" + termB + "\": " + df.format(anA.getRelatednessTo(anB) * 100) + "%") ;
+				System.out.println("\nRelatedness of \"" + termA + "\" to \"" + termB + "\": " + df.format(anA.getRelatednessTo(anB).sr * 100) + "%") ;
 			}
-		}
-	}
-	
-	private class CandidatePair implements Comparable<CandidatePair> {
-		
-		Sense senseA ;
-		Sense senseB ;
-		double relatedness ;
-		double obviousness ;
-		
-		/**
-		 * initializes a new pair of candidate senses when disambiguating two anchors against each other
-		 * 
-		 * @param senseA the candidate sense of the first anchor
-		 * @param senseB the candidate sense of the seccond anchor
-		 * @param relatedness the amount that these senses relate to each other
-		 * @param obviousness the average prior probability of the two senses
-		 */
-		public CandidatePair(Sense senseA, Sense senseB, double relatedness, double obviousness) {
-			this.senseA = senseA ;
-			this.senseB = senseB ;
-			this.relatedness = relatedness ;
-			this.obviousness = obviousness ;			
-		}
-		
-		public int compareTo(CandidatePair cp) {
-			return new Double(cp.obviousness).compareTo(obviousness) ;
-		}
-		
-		public String toString() {
-			return senseA + "," + senseB + ",r=" + relatedness + ",o=" + obviousness ;
 		}
 	}
 	
