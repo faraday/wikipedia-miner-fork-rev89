@@ -127,20 +127,42 @@ public class Context {
 		}
 		
 		TreeSet<Article> sortedContextArticles = new TreeSet<Article>() ;
-		for (Anchor.Sense s:senses) {
-			double linkProb = s.getWeight() ;
-			
-			double avgRelatedness = 0 ;
-			
-			for (Anchor.Sense s2: senses) 
-				avgRelatedness += this.relatednessCache.getRelatedness(s, s2) ; 
+		// for (Anchor.Sense s:senses) {
+		for (Anchor a1 : ambigAnchors) {
+			for (Anchor.Sense s : a1.getSenses()){
+				if(isDate(s)) continue;
 				
-			avgRelatedness = avgRelatedness / (senses.size()) ;
-			
-			double weight = (linkProb + avgRelatedness + avgRelatedness)/3 ;
-			
-			s.setWeight(weight) ;
-			sortedContextArticles.add(s) ;
+				double linkProb = s.getWeight() ;
+				
+				double rel;
+				double avgRelatedness = 0 ;
+				double maxRelatedness = 0 ;
+				
+				// for (Anchor.Sense s2: senses) {
+				for(Anchor a2 : ambigAnchors) {
+					if(a1 == a2)
+						continue;
+					
+					maxRelatedness = 0;
+					
+					for(Anchor.Sense s2 : a2.getSenses()){
+						rel = this.relatednessCache.getRelatedness(s, s2);
+						if(maxRelatedness < rel)
+							maxRelatedness = rel;
+					}
+					avgRelatedness += maxRelatedness ;
+					System.out.println(s.getTitle() + " - " + a2.getText() + " - maxrel: " + maxRelatedness);
+				}
+					
+				avgRelatedness = avgRelatedness / (ambigAnchors.size()-1) ;
+				System.out.println(">> " + s.getTitle() + "- avgrel: " + avgRelatedness);
+				
+				double weight = (linkProb + avgRelatedness + avgRelatedness)/3 ;
+				System.out.println("| " + s.getTitle() + "- w: " + weight);
+				
+				s.setWeight(weight) ;
+				sortedContextArticles.add(s) ;
+			}
 		}
 		
 		contextArticles = new Vector<Article>() ; 

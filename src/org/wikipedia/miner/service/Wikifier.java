@@ -295,7 +295,7 @@ public class Wikifier {
 		Element xmlResult = wms.createElement("Result", wikifyAndGatherTopics(source, sourceMode, minProbability, repeatMode, bannedTopics, baseColor, linkColor, showTooltips, detectedTopics)) ;
 		xmlResponse.appendChild(xmlResult) ;
 		if (sourceMode == SOURCE_URL) 
-			xmlResult.setAttribute("ouputMode", String.valueOf(SOURCE_HTML)) ;
+			xmlResult.setAttribute("outputMode", String.valueOf(SOURCE_HTML)) ;
 		else
 			xmlResult.setAttribute("outputMode", String.valueOf(sourceMode)) ;
 		
@@ -308,13 +308,15 @@ public class Wikifier {
 		Element xmlDetectedTopicList = wms.doc.createElement("DetectedTopicList") ;
 		xmlResponse.appendChild(xmlDetectedTopicList) ;
 
-		for (Article dt:detectedTopics) {
+		for (Topic dt:detectedTopics) {
 			if (dt.getWeight() < minProbability) break ;
 
 			Element detectedTopic = wms.doc.createElement("DetectedTopic") ;
 			detectedTopic.setAttribute("id", String.valueOf(dt.getId())) ;
 			detectedTopic.setAttribute("title", dt.getTitle()) ;
 			detectedTopic.setAttribute("weight", df.format(dt.getWeight())) ;
+			detectedTopic.setAttribute("rel-topics", df.format(dt.getRelatednessToOtherTopics())) ;
+			detectedTopic.setAttribute("rel-context", df.format(dt.getRelatednessToContext())) ;
 
 			xmlDetectedTopicList.appendChild(detectedTopic) ;
 		}

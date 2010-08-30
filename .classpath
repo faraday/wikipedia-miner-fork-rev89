@@ -7,5 +7,7 @@
 	<classpathentry kind="lib" path="web/WEB-INF/lib/weka.jar"/>
 	<classpathentry kind="lib" path="web/WEB-INF/lib/snowball.jar"/>
 	<classpathentry kind="lib" path="lib/servlet-api.jar"/>
+	<classpathentry kind="lib" path="web/WEB-INF/lib/zemberek-cekirdek-2.1.1.jar"/>
+	<classpathentry kind="lib" path="web/WEB-INF/lib/zemberek-tr-2.1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

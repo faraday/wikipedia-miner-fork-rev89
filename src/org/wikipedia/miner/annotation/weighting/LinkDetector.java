@@ -443,10 +443,10 @@ public class LinkDetector extends TopicWeighter{
 		//use a text processor, so that terms and items in wikipedia will both be case-folded before being compared.
 		TextProcessor tp = new CaseFolder() ;
 		
-		File stopwordFile = new File("/research/wikipediaminer/data/stopwords.txt") ;
+		File stopwordFile = new File("data/stopwords.txt") ;
 		
 		// cache tables that will be used extensively
-		File dataDirectory = new File("/research/wikipediaminer/data/en/20080727") ;
+		File dataDirectory = new File(".") ;
 		ProgressNotifier pn = new ProgressNotifier(5) ;
 		
 		TIntHashSet ids = wikipedia.getDatabase().getValidPageIds(dataDirectory, 2, pn) ;

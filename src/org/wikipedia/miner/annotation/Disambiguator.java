@@ -610,7 +610,7 @@ public class Disambiguator {
 		TextProcessor tp = new CaseFolder() ;
 
 		//cache tables that will be used extensively
-		File dataDirectory = new File("/research/wikipediaminer/data/en/20080727") ;
+		File dataDirectory = new File(args[4]) ;
 		ProgressNotifier pn = new ProgressNotifier(4) ;
 		
 		TIntHashSet ids = wikipedia.getDatabase().getValidPageIds(dataDirectory, 2, pn) ;
@@ -619,8 +619,14 @@ public class Disambiguator {
 		wikipedia.getDatabase().cacheInLinks(dataDirectory, ids, pn) ;
 		
 		//gather article sets for training and testing		
-		ArticleSet trainSet = new ArticleSet(new File("data/articleSets/trainingIds.csv")) ;
-		ArticleSet testSet = new ArticleSet(new File("data/articleSets/testIds_disambig.csv")) ;
+		// ArticleSet trainSet = new ArticleSet(new File("data/articleSets/trainingIds.csv")) ;
+		// ArticleSet testSet = new ArticleSet(new File("data/articleSets/testIds_disambig.csv")) ;
+		
+		ArticleSet trainSet = new ArticleSet(wikipedia,500,5,10,0.10,1.0,100,99999999,1.0) ;
+		ArticleSet testSet = new ArticleSet(wikipedia,500,5,10,0.10,1.0,100,99999999,1.0) ;
+		
+		trainSet.save(new File("data/articleSets/trainingIds.csv"));
+		testSet.save(new File("data/articleSets/testIds_disambig.csv"));
 
 		//use relatedness cache, so we won't repeat these calculations unnecessarily
 		RelatednessCache rc = new RelatednessCache() ;

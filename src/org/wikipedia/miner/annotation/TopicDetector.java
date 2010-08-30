@@ -26,6 +26,7 @@ import java.util.*;
 import java.util.regex.*;
 
 import org.wikipedia.miner.model.*;
+import org.wikipedia.miner.model.Anchor.Sense;
 import org.wikipedia.miner.util.*;
 import org.wikipedia.miner.annotation.preprocessing.*;
 
@@ -202,13 +203,19 @@ public class TopicDetector {
 	
 		// get context articles from unambiguous anchors
 		Vector<Anchor> unambigAnchors = new Vector<Anchor>() ;
+		Vector<Anchor> ambigAnchors = new Vector<Anchor>();
 		for (TopicReference ref:references) {
 			Anchor anchor = ref.getAnchor() ;
 			
 			SortedVector<Anchor.Sense> senses = anchor.getSenses() ;
 			if (senses.size() > 0) {				
+				for(Sense s : senses){
+					System.out.println("> " + anchor.getText() + " sense: " + s.getTitle() + " prob: " + s.getProbability());
+				}
 				if (senses.size() == 1 || senses.first().getProbability() > 1-disambiguator.getMinSenseProbability())
-					unambigAnchors.add(anchor) ;	
+					unambigAnchors.add(anchor) ;
+				else
+					ambigAnchors.add(anchor);
 			}		
 		}
 		
@@ -221,11 +228,25 @@ public class TopicDetector {
 				if (senses.size() == 1 || senses.first().getProbability() > 1-disambiguator.getMinSenseProbability()) {
 					unambigAnchors.add(anchor) ;	
 				}
+				else
+					ambigAnchors.add(anchor);
 			}
+		}
+		
+		// DEBUGGING
+		for(Anchor a : unambigAnchors){
+			System.out.println("unambig anchor: " + a.getText());
+		}
+		
+		for(Anchor a : ambigAnchors){
+			System.out.println("ambig anchor: " + a.getText());
 		}
 		
 		Context context = new Context(unambigAnchors, cache, disambiguator.getMaxContextSize()) ;	
 		unambigAnchors = null ;
+		
+		Context ambigContext = new Context(ambigAnchors, cache, disambiguator.getMaxContextSize(), 0);
+		ambigAnchors = null;
 
 		//now disambiguate all references
 		//unambig references are still processed here, because we need to calculate relatedness to context anyway.
@@ -234,7 +255,7 @@ public class TopicDetector {
 		HashMap<String, TreeSet<CachedSense>> disambigCache = new HashMap<String, TreeSet<CachedSense>>() ;
 
 		for (TopicReference ref:references) {
-			//System.out.println("disambiguating ref: " + ref.getAnchor().getText()) ;
+			System.out.println("disambiguating ref: " + ref.getAnchor().getText()) ;
 
 			TreeSet<CachedSense> validSenses = disambigCache.get(ref.getAnchor().getText()) ;
 
@@ -249,12 +270,13 @@ public class TopicDetector {
 					if (!allowDisambiguations && sense.getType() == Page.DISAMBIGUATION)
 						continue ;
 
-					double relatedness = context.getRelatednessTo(sense) ;
+					// double relatedness = context.getRelatednessTo(sense);
+					double relatedness = Math.max(context.getRelatednessTo(sense),ambigContext.getRelatednessTo(sense));
 					double commonness = sense.getProbability() ;
 
 					double disambigProb = disambiguator.getProbabilityOfSense(commonness, relatedness, context) ;
 
-					//System.out.println(" - sense " + sense + ", " + disambigProb) ;
+					System.out.println(" - sense " + sense + ", " + disambigProb + " , rel: " + relatedness + ", comm: " + commonness) ;
 					
 					if (disambigProb > 0.5) {
 						// this is a valid sense for the link (there may be more than one)
