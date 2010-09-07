@@ -93,6 +93,11 @@
       <param-value></param-value>
     </context-param>
 
+    <context-param>
+      <param-name>language</param-name>
+      <param-value></param-value>
+    </context-param>
+
     <servlet>
       <servlet-name>WikipediaMinerServlet</servlet-name>
       <description>

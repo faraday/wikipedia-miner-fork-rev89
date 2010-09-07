@@ -175,6 +175,91 @@ public class Context {
 			contextArticles.add(art) ;			
 		}	
 	}
+	
+	
+	
+	/**
+	 * Initializes a collection of context articles from the given set of ambuguous anchors,  
+	 * 
+	 * @param ambigAnchors a set of ambiguous anchors, the most useful of which will be used to disambiguate other terms
+	 * @param relatednessCache a cache in which relatedness measures will be saved so they aren't repeatedly calculated. This may be null. 
+	 * @param maxSize the maximum number of anchors that will be used (the more there are, the longer disambiguation takes, but the more accurate it is likely to be).
+	 * @param minSenseLimit the minimum prior probability of an anchors sense that will be used as context.  
+	 * @throws SQLException if there is a problem with the wikipedia database
+	 */
+	public void addAmbigContext(Collection<Anchor> ambigAnchors, RelatednessCache relatednessCache, double maxSize, double minSenseLimit) throws SQLException {
+		
+		if (relatednessCache == null)
+			this.relatednessCache = new RelatednessCache() ;
+		else
+			this.relatednessCache = relatednessCache ;
+		
+		HashSet<Integer> doneIds = new HashSet<Integer>() ;		
+		Vector<Anchor.Sense> senses = new Vector<Anchor.Sense>() ;
+		for (Anchor anch: ambigAnchors) {
+			
+			for (Anchor.Sense sense:anch.getSenses()) {
+				if (sense.getProbability() < minSenseLimit) break ;
+				
+				if (!isDate(sense) && !doneIds.contains(sense.getId())) {
+					sense.setWeight(anch.getLinkProbability() * sense.getProbability()) ;
+					senses.add(sense) ;
+					doneIds.add(sense.getId()) ;
+				}
+			}
+		}
+		
+		TreeSet<Article> sortedContextArticles = new TreeSet<Article>() ;
+		// for (Anchor.Sense s:senses) {
+		for (Anchor a1 : ambigAnchors) {
+			for (Anchor.Sense s : a1.getSenses()){
+				if(isDate(s)) continue;
+				
+				double linkProb = s.getWeight() ;
+				
+				double rel;
+				double avgRelatedness = 0 ;
+				double maxRelatedness = 0 ;
+				
+				// for (Anchor.Sense s2: senses) {
+				for(Anchor a2 : ambigAnchors) {
+					if(a1 == a2)
+						continue;
+					
+					maxRelatedness = 0;
+					
+					for(Anchor.Sense s2 : a2.getSenses()){
+						rel = this.relatednessCache.getRelatedness(s, s2);
+						if(maxRelatedness < rel)
+							maxRelatedness = rel;
+					}
+					avgRelatedness += maxRelatedness ;
+					System.out.println(s.getTitle() + " - " + a2.getText() + " - maxrel: " + maxRelatedness);
+				}
+					
+				avgRelatedness = avgRelatedness / (ambigAnchors.size()-1) ;
+				System.out.println(">> " + s.getTitle() + "- avgrel: " + avgRelatedness);
+				
+				double weight = (linkProb + avgRelatedness + avgRelatedness)/3 ;
+				System.out.println("| " + s.getTitle() + "- w: " + weight);
+				
+				s.setWeight(weight) ;
+				sortedContextArticles.add(s) ;
+			}
+		}
+		
+		int c = 0 ;
+		for (Article art: sortedContextArticles) {
+			if (c++ > maxSize)
+				break ;
+			
+			totalWeight += art.getWeight() ;
+			contextArticles.add(art) ;			
+		}	
+	}
+	
+	
+	
 
 	/**
 	 * @return the quality (size and homogeneity) of the available context. 

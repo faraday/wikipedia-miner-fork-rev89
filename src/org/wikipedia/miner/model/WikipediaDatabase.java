@@ -1551,15 +1551,18 @@ public class WikipediaDatabase extends MySqlDatabase {
 	public static void main(String[] args) {
 		try {
 			
-			Wikipedia wikipedia = new Wikipedia("localhost", "rowiki_20090203", "root", null) ;
+			// Wikipedia wikipedia = new Wikipedia("localhost", "rowiki_20090203", "root", null) ;
 			//Wikipedia wikipedia = new Wikipedia("localhost", "enwiki_2000727", "dnk2", null) ;
 						
-			//Wikipedia.getInstanceFromArguments(args) ;
+			Wikipedia wikipedia = Wikipedia.getInstanceFromArguments(args) ;
 			
 			File dataDirectory = new File("/research/wikipediaminer/data/ro/20090203") ;
 			wikipedia.getDatabase().loadData(dataDirectory, false) ;
-						
-			wikipedia.getDatabase().prepareForTextProcessor(new CaseFolder()) ;
+			
+			// TextProcessor tp = new CaseFolder() ;
+			TextProcessor tp = new UniversalStemmer(args[4]) ;
+
+			wikipedia.getDatabase().prepareForTextProcessor(tp) ;
 			//wikipedia.getDatabase().prepareForTextProcessor(new Cleaner()) ;
 			//wikipedia.getDatabase().prepareForTextProcessor(new PorterStemmer()) ;
 			

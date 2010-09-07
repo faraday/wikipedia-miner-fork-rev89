@@ -19,6 +19,9 @@
 
 package org.wikipedia.miner.util.text;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * This class provides a TextProcessor based on snowball stemmers.
  * Have a look at http://snowball.tartarus.org/
@@ -30,7 +33,10 @@ public class SnowballStemmer extends TextProcessor {
 	private Cleaner cleaner ;
     private org.tartarus.snowball.SnowballStemmer stemmer;
     private String language;
-
+        
+    private String delim = "[^`~!@#$%^&*()_=+|\\[\\];{},?<>:'\\\\\"]+";
+    private Pattern reDelim;
+    
     /**
 	 * Initializes a newly created Stemmer (English).
 	 */
@@ -38,7 +44,9 @@ public class SnowballStemmer extends TextProcessor {
 		this.cleaner = new Cleaner();
         this.stemmer = (org.tartarus.snowball.SnowballStemmer) new org.tartarus.snowball.ext.englishStemmer();
         this.language = "english";
-        this.repeat = 1;
+        this.repeat = 1;     
+        
+        this.reDelim = Pattern.compile(delim);
 	}
 
 	/**
@@ -49,6 +57,8 @@ public class SnowballStemmer extends TextProcessor {
         this.language = language;
         this.selectLanguage(language);
         this.repeat = 1;
+        
+        this.reDelim = Pattern.compile(delim);
 	}
 
 	/**
@@ -91,11 +101,21 @@ public class SnowballStemmer extends TextProcessor {
 	public synchronized String processText(String text) {
 		StringBuffer processedText = new StringBuffer() ;
 		String[] terms = text.toLowerCase().split("\\s+") ;
+		String tmp;
+		
 		for(int i=0;i<terms.length; i++)
         {
             if(terms[i].length() > 0)
             {
-                this.stemmer.setCurrent(terms[i]);
+            	Matcher m = reDelim.matcher(terms[i]);
+            	if(m.find()){
+            		tmp = m.group();
+            	}
+            	else {
+            		tmp = terms[i];
+            	}
+            	
+                this.stemmer.setCurrent(tmp);
                 for (int j = this.repeat; j != 0; j--) {
                     this.stemmer.stem();
                 }

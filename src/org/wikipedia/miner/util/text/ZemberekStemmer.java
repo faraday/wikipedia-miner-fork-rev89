@@ -1,5 +1,8 @@
 package org.wikipedia.miner.util.text;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import net.zemberek.erisim.Zemberek;
 import net.zemberek.islemler.KokBulucu;
 import net.zemberek.tr.yapi.TurkiyeTurkcesi;
@@ -11,6 +14,9 @@ public class ZemberekStemmer extends TextProcessor {
     private String language;
     
     private String current;
+    
+    private String delim = "[^`~!@#$%^&*()_=+|\\[\\];{},?<>:'\\\\\"]+";
+    private Pattern reDelim;
 	
     public ZemberekStemmer(){
     	final Zemberek z = new Zemberek(new TurkiyeTurkcesi());
@@ -19,6 +25,8 @@ public class ZemberekStemmer extends TextProcessor {
         this.stemmer = z.kokBulucu();
         this.language = "turkish";
         this.repeat = 1;
+        
+        this.reDelim = Pattern.compile(delim);
     }
 	
     /**
@@ -71,7 +79,14 @@ public class ZemberekStemmer extends TextProcessor {
         {
             if(terms[i].length() > 0)
             {
-            	current = terms[i];
+            	Matcher m = reDelim.matcher(terms[i]);
+            	if(m.find()){
+            		current = m.group();
+            	}
+            	else {
+            		current = terms[i];
+            	}
+            	
                 for (int j = this.repeat; j != 0; j--) {
                     tmp = this.stem(current);
                     if(tmp == null)

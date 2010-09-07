@@ -485,7 +485,7 @@ public class Article extends Page {
 		return idsOnly ;		
 	}
 
-	private int[][] getLinksOutIdsAndCounts() throws SQLException {
+	public int[][] getLinksOutIdsAndCounts() throws SQLException {
 
 		if (outLinkIdsAndCounts != null)
 			return outLinkIdsAndCounts ;

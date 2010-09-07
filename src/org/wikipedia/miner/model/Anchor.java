@@ -287,7 +287,7 @@ public class Anchor implements Comparable<Anchor>{
 		if (wc > 0) 
 			wc = Math.log(wc)/30 ;
 		
-		double minProb = 0.01 ;
+		double minProb = 0.01 ;	// increase this if STEMMING is active, original = 0.01
 		double benchmark_relatedness = 0 ;
 		double benchmark_distance = 0.40 ;
 		
@@ -456,7 +456,8 @@ public class Anchor implements Comparable<Anchor>{
 		Wikipedia wikipedia = Wikipedia.getInstanceFromArguments(args) ;
 		BufferedReader in = new BufferedReader( new InputStreamReader( System.in ) );			
 
-		TextProcessor tp = new CaseFolder() ; 
+		// TextProcessor tp = new CaseFolder() ;
+		TextProcessor tp = new UniversalStemmer(args[4]) ;
 		
 		File dataDirectory = new File("/research/wikipediaminer/data/en/20090306") ;
 		ProgressNotifier pn = new ProgressNotifier(2) ;

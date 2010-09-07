@@ -245,7 +245,10 @@ public class TopicDetector {
 		Context context = new Context(unambigAnchors, cache, disambiguator.getMaxContextSize()) ;	
 		unambigAnchors = null ;
 		
-		Context ambigContext = new Context(ambigAnchors, cache, disambiguator.getMaxContextSize(), 0);
+		/* Context ambigContext = new Context(ambigAnchors, cache, disambiguator.getMaxContextSize(), 0);
+		ambigAnchors = null; */
+		
+		context.addAmbigContext(ambigAnchors, cache, disambiguator.getMaxContextSize(), 0);
 		ambigAnchors = null;
 
 		//now disambiguate all references
@@ -270,8 +273,8 @@ public class TopicDetector {
 					if (!allowDisambiguations && sense.getType() == Page.DISAMBIGUATION)
 						continue ;
 
-					// double relatedness = context.getRelatednessTo(sense);
-					double relatedness = Math.max(context.getRelatednessTo(sense),ambigContext.getRelatednessTo(sense));
+					double relatedness = context.getRelatednessTo(sense);
+					// double relatedness = Math.max(context.getRelatednessTo(sense),ambigContext.getRelatednessTo(sense));
 					double commonness = sense.getProbability() ;
 
 					double disambigProb = disambiguator.getProbabilityOfSense(commonness, relatedness, context) ;

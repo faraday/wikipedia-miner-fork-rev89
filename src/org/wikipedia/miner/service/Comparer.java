@@ -19,6 +19,7 @@
 
 package org.wikipedia.miner.service;
 
+import java.sql.SQLException;
 import java.util.*;
 
 import org.w3c.dom.*;
@@ -40,13 +41,19 @@ public class Comparer {
 	
 	private boolean defaultShowDetails = false ;
 	private int defaultMaxLinkCount = 250 ;
+	
+	private String language;
+	
+	private int[] linksIn1, linksIn2;
+	private int[][] linksOut1, linksOut2;
 
 	/**
 	 * Initializes a new Comparer
 	 * @param wms the servlet that hosts this service
 	 */
-	public Comparer(WikipediaMinerServlet wms) {
+	public Comparer(WikipediaMinerServlet wms, String language) {
 		this.wms = wms;
+		this.language = language;
 	}
 	
 	/**
@@ -111,8 +118,238 @@ public class Comparer {
 		
 		return description ;
 	}
+	
+	
+	private double getRelatednessFromInLinks(ArrayList<Integer> group1, ArrayList<Integer> group2, int[] linksA, int[] linksB) throws SQLException{
+		
+		int linksBoth = 0 ;
+
+		int indexA = 0 ;
+		int indexB = 0 ;
+
+		while (indexA < linksA.length && indexB < linksB.length) {
+
+			long idA = linksA[indexA] ;
+			long idB = linksB[indexB] ;
+
+			if (idA == idB) {
+				linksBoth ++ ;
+				indexA ++ ;
+				indexB ++ ;
+			} else {
+				
+				if ((idA < idB && idA > 0)|| idB < 0) {
+					
+					if (group2.contains(idA)) 
+						linksBoth ++ ;
+					
+					indexA ++ ;
+				} else {
+					
+					if (group1.contains(idB)) 
+						linksBoth ++ ;
+					
+					indexB ++ ;
+				}
+			}
+		}
+
+		double a = Math.log(linksA.length) ;
+		double b = Math.log(linksB.length) ;
+		double ab = Math.log(linksBoth) ;
+		double m = Math.log(wms.wikipedia.getDatabase().getArticleCount()) ;
+
+		double sr = (Math.max(a, b) -ab) / (m - Math.min(a, b)) ;
+
+		if (Double.isNaN(sr) || Double.isInfinite(sr) || sr > 1)
+			sr = 1 ;
+
+		sr = 1-sr ;
+
+		return sr ;
+	}
+	
+	
+	private double getRelatednessFromOutLinks(ArrayList<Integer> group1, ArrayList<Integer> group2, int[][] dataA, int[][] dataB) throws SQLException{
+
+		int totalArticles = wms.wikipedia.getDatabase().getArticleCount() ;
+
+		if (dataA.length == 0 || dataB.length == 0)
+			return 0 ;
+
+		int indexA = 0 ;
+		int indexB = 0 ;
+
+		Vector<Double> vectA = new Vector<Double>() ;
+		Vector<Double> vectB = new Vector<Double>() ;
+
+		while (indexA < dataA.length || indexB < dataB.length) {
+
+			int idA = -1 ;
+			int idB = -1 ;
+
+			if (indexA < dataA.length)
+				idA = dataA[indexA][0] ;
+
+			if (indexB < dataB.length)
+				idB = dataB[indexB][0] ;
+
+			if (idA == idB) {
+				double probability = Math.log((double)totalArticles/dataA[indexA][1]) ;
+				vectA.add(probability) ;
+				vectB.add(probability) ;
+
+				indexA ++ ;
+				indexB ++ ;
+			} else {
+
+				if ((idA < idB && idA > 0)|| idB < 0) {
+					
+					double probability = Math.log((double)totalArticles/dataA[indexA][1]) ;
+					vectA.add(probability) ;
+					if (group2.contains(idA))
+						vectB.add(probability) ;
+					else
+						vectB.add(0.0) ;
+				
+					indexA ++ ;
+				} else {
+					
+					double probability = Math.log((double)totalArticles/dataB[indexB][1]) ;
+					vectB.add(new Double(probability)) ;
+					if (group1.contains(idB))
+						vectA.add(probability) ;
+					else
+						vectA.add(0.0) ;
+
+					indexB ++ ;
+				}
+			}
+		}
+
+		// calculate angle between vectors
+		double dotProduct = 0 ;
+		double magnitudeA = 0 ;
+		double magnitudeB = 0 ;
+
+		for (int x=0;x<vectA.size();x++) {
+			double valA = ((Double)vectA.elementAt(x)).doubleValue() ;
+			double valB = ((Double)vectB.elementAt(x)).doubleValue() ;
+
+			dotProduct = dotProduct + (valA * valB) ;
+			magnitudeA = magnitudeA + (valA * valA) ;
+			magnitudeB = magnitudeB + (valB * valB) ;
+		}
+
+		magnitudeA = Math.sqrt(magnitudeA) ;
+		magnitudeB = Math.sqrt(magnitudeB) ;
+
+		double sr = Math.acos(dotProduct / (magnitudeA * magnitudeB)) ;		
+		sr = (Math.PI/2) - sr ; // reverse, so 0=no relation, PI/2= same
+		sr = sr / (Math.PI/2) ; // normalize, so measure is between 0 and 1 ;				
+
+		return sr ;
+	}
+	
+	
+	public double getRelatednessTo(ArrayList<Integer> group1, ArrayList<Integer> group2) throws SQLException{
+		
+		WikipediaDatabase database = wms.wikipedia.getDatabase();
+		
+		if (database.areOutLinksCached() && database.areInLinksCached()) {
+			readLinks(group1,group2);
+			return (getRelatednessFromInLinks(group1,group2,linksIn1,linksIn2) + getRelatednessFromOutLinks(group1,group2,linksOut1,linksOut2))/2 ;
+		}
+			
+		if (database.areOutLinksCached()) {
+			readLinks(group1,group2);
+			return  getRelatednessFromOutLinks(group1,group2,linksOut1,linksOut2) ;
+		}
+		
+		if (database.areInLinksCached()) {
+			readLinks(group1,group2);
+			return getRelatednessFromInLinks(group1,group2,linksIn1,linksIn2) ;
+		}
+		
+		return (getRelatednessFromInLinks(group1,group2,linksIn1,linksIn2) + getRelatednessFromOutLinks(group1,group2,linksOut1,linksOut2))/2 ;
+	}
+	
+	
+	private void readLinks(ArrayList<Integer> group1, ArrayList<Integer> group2) throws SQLException{
+		TreeSet<Integer> tlinksIn1 = new TreeSet<Integer>() ;
+		ArrayList<int[]> tlinksOut1 = new ArrayList<int[]>() ;
+		for(int i : group1){
+			Article art1 = new Article(wms.wikipedia.getDatabase(),i);
+			for (Integer link:art1.getLinksInIds()) 
+				tlinksIn1.add(link) ;
+			for (int[] outLinkIdsAndCounts:art1.getLinksOutIdsAndCounts()) 
+				tlinksOut1.add(outLinkIdsAndCounts) ;
+		}
+		
+		TreeSet<Integer> tlinksIn2 = new TreeSet<Integer>() ;
+		ArrayList<int[]> tlinksOut2 = new ArrayList<int[]>() ;
+		for(int i : group2){
+			Article art2 = new Article(wms.wikipedia.getDatabase(),i);
+			for (Integer link:art2.getLinksInIds()) 
+				tlinksIn2.add(link) ;
+			for (int[] outLinkIdsAndCounts:art2.getLinksOutIdsAndCounts()) 
+				tlinksOut2.add(outLinkIdsAndCounts) ;
+		}
+		
+		this.linksIn1 = new int[tlinksIn1.size()];
+		this.linksIn2 = new int[tlinksIn2.size()];
+		this.linksOut1 = new int[tlinksOut1.size()][2];
+		this.linksOut2 = new int[tlinksOut2.size()][2];
+		int i=0;
+		for(int k : tlinksIn1){
+			this.linksIn1[i++] = k;
+		}
+		i=0;
+		for(int k : tlinksIn2){
+			this.linksIn2[i++] = k;
+		}
+		i=0;
+		for(int [] k : tlinksOut1){
+			this.linksOut1[i++] = k;
+		}
+		i=0;
+		for(int [] k : tlinksOut2){
+			this.linksOut2[i++] = k;
+		}
+		
+	}
+	
 
 	//TODO: add a method for comparing a set of article ids.
+	
+	/**
+	 * Measures the relatedness between two sets of article ids 
+	 * 
+	 * @param term1 the first term to compare
+	 * @param term2 the second term to compare
+	 * @param details true if the details of a relatedness comparison (all of the senses and links that were considered) are needed, otherwise false.
+	 * @param linkLimit the maximum number of page links to return when presenting the details of a relatedness comparison.
+	 * @return an Element message of how the two terms relate to each other
+	 * @throws Exception
+	 */
+	public Element getGroupRelatedness(ArrayList<Integer> group1, ArrayList<Integer> group2) throws Exception {
+
+		Element response = wms.doc.createElement("RelatednessResponse") ;
+		
+		if (group1 == null || group2 == null) {
+			response.setAttribute("unspecifiedParameters", "true") ;
+			return response ;
+		}
+						
+		double sr = getRelatednessTo(group1, group2);
+
+		response.setAttribute("relatedness", wms.df.format(sr)) ;
+
+		return response ;
+
+	}
+	
+	
 	
 	/**
 	 * Measures the relatedness between two terms, and 
@@ -133,7 +370,8 @@ public class Comparer {
 			return response ;
 		}
 				
-		TextProcessor tp = new CaseFolder() ;
+		// TextProcessor tp = new CaseFolder() ;
+		TextProcessor tp = new UniversalStemmer(language) ;			
 
 		Anchor anchor1 = new Anchor(term1, tp, wms.wikipedia.getDatabase()) ;
 		SortedVector<Anchor.Sense> senses1 = anchor1.getSenses() ; 

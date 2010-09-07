@@ -2,13 +2,25 @@ package org.wikipedia.miner.util.text;
 
 public class UniversalStemmer extends TextProcessor {
 	TextProcessor stemProcessor;
+	
+	public UniversalStemmer(){
+		try {
+			this.stemProcessor = new SnowballStemmer("english");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
-	public UniversalStemmer(String language) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+	public UniversalStemmer(String language) {
 		if(language == "turkish"){
 			this.stemProcessor = new ZemberekStemmer();
 		}
 		else {
-			this.stemProcessor = new SnowballStemmer(language);
+			try {
+				this.stemProcessor = new SnowballStemmer(language);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	

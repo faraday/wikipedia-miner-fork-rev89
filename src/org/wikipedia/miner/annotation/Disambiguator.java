@@ -607,7 +607,8 @@ public class Disambiguator {
 		Wikipedia wikipedia = Wikipedia.getInstanceFromArguments(args) ;
 		
 		//use a text processor, so that terms and items in wikipedia will both be case-folded before being compared.
-		TextProcessor tp = new CaseFolder() ;
+		// TextProcessor tp = new CaseFolder() ;
+		TextProcessor tp = new UniversalStemmer(args[4]) ;
 
 		//cache tables that will be used extensively
 		File dataDirectory = new File(args[4]) ;

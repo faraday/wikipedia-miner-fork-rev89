@@ -43,12 +43,15 @@ public class Searcher {
 		
 	private int defaultMaxLinkCount = 250 ;
 	private int defaultMaxSenseCount = 25 ;
+	
+	private String language;
 
 	/**
 	 * @param wms the servlet that hosts this service
 	 */
-	public Searcher(WikipediaMinerServlet wms) {
+	public Searcher(WikipediaMinerServlet wms, String language) {
 		this.wms = wms ;
+		this.language = language;
 	}
 	
 	/**
@@ -127,7 +130,9 @@ public class Searcher {
 			return response ;
 		}
 		
-		TextProcessor tp = new CaseFolder() ;			
+		// TextProcessor tp = new CaseFolder() ;
+		TextProcessor tp = new UniversalStemmer(language) ;			
+
 		Anchor anchor = new Anchor(term, tp, wms.wikipedia.getDatabase()) ;
 		SortedVector<Anchor.Sense> senses = anchor.getSenses() ; 
 		

@@ -65,14 +65,20 @@ public class WikipediaMinerServlet extends HttpServlet {
 	private HashMap<String,Transformer> transformersByName ;
 	DOMParser parser = new DOMParser() ;
 	protected Document doc = new DocumentImpl();
-	protected DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(Locale.US);
+	// protected DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(Locale.US);
+	protected DecimalFormat df = new DecimalFormat("#.##########");
 
+	private String language;
 
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
 		context = config.getServletContext() ;
 
-		TextProcessor tp = new CaseFolder() ; 
+		language = context.getInitParameter("language");
+		
+		// TextProcessor tp = new CaseFolder() ;
+		TextProcessor tp = new UniversalStemmer(language);
+
 
 		try {
 			wikipedia = new Wikipedia(context.getInitParameter("mysql_server"), context.getInitParameter("mysql_database"), context.getInitParameter("mysql_user"), context.getInitParameter("mysql_password")) ;
@@ -83,8 +89,8 @@ public class WikipediaMinerServlet extends HttpServlet {
 		//Escaper escaper = new Escaper() ;
 
 		definer = new Definer(this) ;
-		comparer = new Comparer(this) ;
-		searcher = new Searcher(this) ;
+		comparer = new Comparer(this, language) ;
+		searcher = new Searcher(this, language) ;
 		
 		try {
 			wikifier = new Wikifier(this, tp) ;
@@ -224,6 +230,24 @@ public class WikipediaMinerServlet extends HttpServlet {
 				boolean details = resolveBooleanArg(request.getParameter("details"), comparer.getDefaultShowDetails()) ;
 
 				data = comparer.getRelatedness(term1, term2, details, linkLimit) ;
+			}
+			
+			//process group compare request
+			if (data==null && task.equals("gcompare")) {
+				String [] strGroup1 = request.getParameterValues("group1");
+				String [] strGroup2 = request.getParameterValues("group2") ;
+				
+				ArrayList<Integer> group1 = new ArrayList<Integer>(strGroup1.length);
+				ArrayList<Integer> group2 = new ArrayList<Integer>(strGroup2.length);
+				
+				for(int m=0;m<strGroup1.length;m++){
+					group1.add(Integer.valueOf(strGroup1[m]));
+				}
+				for(int m=0;m<strGroup2.length;m++){
+					group2.add(Integer.valueOf(strGroup2[m]));
+				}
+
+				data = comparer.getGroupRelatedness(group1, group2);
 			}
 			
 			//process wikify request
