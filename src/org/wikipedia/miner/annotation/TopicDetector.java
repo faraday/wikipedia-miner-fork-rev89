@@ -51,6 +51,10 @@ public class TopicDetector {
 	private boolean strictDisambiguation ;
 	private boolean allowDisambiguations ;
 	
+	// private Pattern reDelim = Pattern.compile("(^|\\s+)[`~!@#$%^&*()\\_\\-=+|\\[\\];{},.?<>:'\\\\\"]+(\\s*|$)");
+	private Pattern reDelim = Pattern.compile("(^|\\s+)[\\W&&[^\\s]]+(\\s*|$)");
+	private Pattern reWSEnd = Pattern.compile("\\W+$");
+	
 	/**
 	 * Initializes a new topic detector.
 	 * 
@@ -179,8 +183,11 @@ public class TopicDetector {
 				for (int j=Math.min(i + disambiguator.getMaxAnchorLength(), matchIndexes.size()-1) ; j > i ; j--) {
 					int currIndex = matchIndexes.elementAt(j) ;	
 					String ngram = s.substring(startIndex, currIndex) ;
+					
+					Matcher mat = reDelim.matcher(ngram);
+					Matcher wsend = reWSEnd.matcher(ngram);
 
-					if (! (ngram.length()==1 && s.substring(startIndex-1, startIndex).equals("'"))&& !ngram.trim().equals("") && !stopwords.contains(ngram.toLowerCase())) {
+					if (!mat.find()  && !wsend.find() && ! (ngram.length()==1 && s.substring(startIndex-1, startIndex).equals("'"))&& !ngram.trim().equals("") && !stopwords.contains(ngram.toLowerCase())) {
 						Anchor anchor = new Anchor(wikipedia.getDatabase().addEscapes(ngram), disambiguator.getTextProcessor(), wikipedia.getDatabase()) ;
 
 						if (anchor.getLinkProbability() >= disambiguator.getMinLinkProbability()) {
@@ -188,7 +195,7 @@ public class TopicDetector {
 							TopicReference ref = new TopicReference(anchor, pos) ;
 							references.add(ref) ;
 							
-							//System.out.println(" - ref: " + ngram) ;
+							// System.out.println(" - ref: " + ngram) ;
 						}
 					}
 				}
