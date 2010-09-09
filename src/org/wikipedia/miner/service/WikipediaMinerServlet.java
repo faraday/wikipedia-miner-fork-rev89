@@ -250,6 +250,22 @@ public class WikipediaMinerServlet extends HttpServlet {
 				data = comparer.getGroupRelatedness(group1, group2);
 			}
 			
+			
+			//process label compare request
+			if (data==null && task.equals("lcompare")) {
+				String term = request.getParameter("term");
+				String [] strGroup = request.getParameterValues("group") ;
+				
+				ArrayList<Integer> group = new ArrayList<Integer>(strGroup.length);
+				
+				for(int m=0;m<strGroup.length;m++){
+					group.add(Integer.valueOf(strGroup[m]));
+				}
+
+				data = comparer.getLabelRelatedness(term, group);
+			}
+			
+			
 			//process wikify request
 			if (data==null && task.equals("wikify")) {
 				

@@ -46,6 +46,9 @@ public class Comparer {
 	
 	private int[] linksIn1, linksIn2;
 	private int[][] linksOut1, linksOut2;
+	
+	private HashMap<String, int[]> cacheLinksIn;
+	private HashMap<String, int[][]> cacheLinksOut;
 
 	/**
 	 * Initializes a new Comparer
@@ -54,6 +57,9 @@ public class Comparer {
 	public Comparer(WikipediaMinerServlet wms, String language) {
 		this.wms = wms;
 		this.language = language;
+		
+		cacheLinksIn = new HashMap<String, int[]>(10000);
+		cacheLinksOut = new HashMap<String, int[][]>(10000);
 	}
 	
 	/**
@@ -276,45 +282,82 @@ public class Comparer {
 	
 	
 	private void readLinks(ArrayList<Integer> group1, ArrayList<Integer> group2) throws SQLException{
-		TreeSet<Integer> tlinksIn1 = new TreeSet<Integer>() ;
-		ArrayList<int[]> tlinksOut1 = new ArrayList<int[]>() ;
+		int u = 0;
+		String key1 = "";
 		for(int i : group1){
-			Article art1 = new Article(wms.wikipedia.getDatabase(),i);
-			for (Integer link:art1.getLinksInIds()) 
-				tlinksIn1.add(link) ;
-			for (int[] outLinkIdsAndCounts:art1.getLinksOutIdsAndCounts()) 
-				tlinksOut1.add(outLinkIdsAndCounts) ;
+			key1 += i + "-";
 		}
 		
-		TreeSet<Integer> tlinksIn2 = new TreeSet<Integer>() ;
-		ArrayList<int[]> tlinksOut2 = new ArrayList<int[]>() ;
+		String key2 = "";
 		for(int i : group2){
-			Article art2 = new Article(wms.wikipedia.getDatabase(),i);
-			for (Integer link:art2.getLinksInIds()) 
-				tlinksIn2.add(link) ;
-			for (int[] outLinkIdsAndCounts:art2.getLinksOutIdsAndCounts()) 
-				tlinksOut2.add(outLinkIdsAndCounts) ;
+			key2 += i + "-";
 		}
 		
-		this.linksIn1 = new int[tlinksIn1.size()];
-		this.linksIn2 = new int[tlinksIn2.size()];
-		this.linksOut1 = new int[tlinksOut1.size()][2];
-		this.linksOut2 = new int[tlinksOut2.size()][2];
-		int i=0;
-		for(int k : tlinksIn1){
-			this.linksIn1[i++] = k;
+		if(cacheLinksIn.containsKey(key1) && cacheLinksOut.containsKey(key1)){
+			this.linksIn1 = cacheLinksIn.get(key1);
+			this.linksOut1 = cacheLinksOut.get(key1);
 		}
-		i=0;
-		for(int k : tlinksIn2){
-			this.linksIn2[i++] = k;
+		else {
+		
+			TreeSet<Integer> tlinksIn1 = new TreeSet<Integer>() ;
+			ArrayList<int[]> tlinksOut1 = new ArrayList<int[]>() ;
+			for(int i : group1){
+				Article art1 = new Article(wms.wikipedia.getDatabase(),i);
+				for (Integer link:art1.getLinksInIds()) 
+					tlinksIn1.add(link) ;
+				for (int[] outLinkIdsAndCounts:art1.getLinksOutIdsAndCounts()) 
+					tlinksOut1.add(outLinkIdsAndCounts) ;
+			}
+			
+			this.linksIn1 = new int[tlinksIn1.size()];
+			this.linksOut1 = new int[tlinksOut1.size()][2];
+			
+			u=0;
+			for(int k : tlinksIn1){
+				this.linksIn1[u++] = k;
+			}
+			u=0;
+			for(int [] k : tlinksOut1){
+				this.linksOut1[u++] = k;
+			}
+			
+			cacheLinksIn.put(key1, this.linksIn1);
+			cacheLinksOut.put(key1, this.linksOut1);
+		
 		}
-		i=0;
-		for(int [] k : tlinksOut1){
-			this.linksOut1[i++] = k;
+		
+		
+		if(cacheLinksIn.containsKey(key2) && cacheLinksOut.containsKey(key2)){
+			this.linksIn2 = cacheLinksIn.get(key2);
+			this.linksOut2 = cacheLinksOut.get(key2);
 		}
-		i=0;
-		for(int [] k : tlinksOut2){
-			this.linksOut2[i++] = k;
+		else {
+			TreeSet<Integer> tlinksIn2 = new TreeSet<Integer>() ;
+			ArrayList<int[]> tlinksOut2 = new ArrayList<int[]>() ;
+			for(int i : group2){
+				Article art2 = new Article(wms.wikipedia.getDatabase(),i);
+				for (Integer link:art2.getLinksInIds()) 
+					tlinksIn2.add(link) ;
+				for (int[] outLinkIdsAndCounts:art2.getLinksOutIdsAndCounts()) 
+					tlinksOut2.add(outLinkIdsAndCounts) ;
+			}
+			
+			this.linksIn2 = new int[tlinksIn2.size()];
+			this.linksOut2 = new int[tlinksOut2.size()][2];
+			
+			
+			u=0;
+			for(int k : tlinksIn2){
+				this.linksIn2[u++] = k;
+			}
+			
+			u=0;
+			for(int [] k : tlinksOut2){
+				this.linksOut2[u++] = k;
+			}
+			
+			cacheLinksIn.put(key2, this.linksIn2);
+			cacheLinksOut.put(key2, this.linksOut2);
 		}
 		
 	}
@@ -325,10 +368,8 @@ public class Comparer {
 	/**
 	 * Measures the relatedness between two sets of article ids 
 	 * 
-	 * @param term1 the first term to compare
-	 * @param term2 the second term to compare
-	 * @param details true if the details of a relatedness comparison (all of the senses and links that were considered) are needed, otherwise false.
-	 * @param linkLimit the maximum number of page links to return when presenting the details of a relatedness comparison.
+	 * @param group1 the first group of ids to compare
+	 * @param group2 the second group of ids to compare
 	 * @return an Element message of how the two terms relate to each other
 	 * @throws Exception
 	 */
@@ -340,10 +381,59 @@ public class Comparer {
 			response.setAttribute("unspecifiedParameters", "true") ;
 			return response ;
 		}
+		
+		Collections.sort(group1);
+		Collections.sort(group2);
 						
 		double sr = getRelatednessTo(group1, group2);
 
 		response.setAttribute("relatedness", wms.df.format(sr)) ;
+
+		return response ;
+
+	}
+	
+	
+	/**
+	 * Measures the relatedness between a term and a set of article ids 
+	 * 
+	 * @param term the term to compare
+	 * @param group the group of ids to compare
+	 * @return an Element message of how the two terms relate to each other
+	 * @throws Exception
+	 */
+	public Element getLabelRelatedness(String term, ArrayList<Integer> group) throws Exception {
+
+		Element response = wms.doc.createElement("RelatednessResponse") ;
+		
+		if (term == null || group == null) {
+			response.setAttribute("unspecifiedParameters", "true") ;
+			return response ;
+		}
+		
+		// TextProcessor tp = new CaseFolder() ;
+		TextProcessor tp = new UniversalStemmer(language) ;
+		
+		Anchor anchor1 = new Anchor(term, tp, wms.wikipedia.getDatabase()) ;
+		SortedVector<Anchor.Sense> senses1 = anchor1.getSenses() ; 
+
+		if (senses1.size() == 0) {
+			response.setAttribute("unknownTerm", term) ; 
+			return response ;
+		}
+		
+		double maxSr = 0, sr;
+		for(Anchor.Sense sense : senses1){
+			ArrayList<Integer> termGroup = new ArrayList<Integer>(1);
+			termGroup.add(sense.getId());
+			
+			sr = getRelatednessTo(termGroup, group);
+			
+			if(sr > maxSr)
+				maxSr = sr;
+		}
+						
+		response.setAttribute("relatedness", wms.df.format(maxSr)) ;
 
 		return response ;
 
